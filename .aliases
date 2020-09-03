@@ -1,0 +1,7 @@
+#! /use/bin/env bash
+# Navigation
+alias c="cd"
+
+
+#List files
+alias l="ls -la"
