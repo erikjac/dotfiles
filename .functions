@@ -1,0 +1,40 @@
+function hello_world {
+    echo "HELLO WORLD"
+}
+
+function firetoken {
+    echo "Firebase token"
+    export FIREBASE_TOKEN=$($HOME/code/bash/firebase-token.sh)
+}
+
+# Create a backup of a file
+function backup_file {
+    FILE=$1
+    FILENAME=$(basename $FILE)
+    echo "backup file $FILENAME.backup"
+    cp $FILE $FILE.backup
+}
+
+function random_string {
+    echo $(openssl rand -hex $1)
+}
+
+function temp_note {
+    local FILE=/tmp/$(random_string 8).md
+    touch $FILE && vim $FILE
+}
+
+function add_env {
+    for i in `cat .env`
+    do
+        export $i
+    done
+}
+
+function forever {
+    while true;
+    do
+        echo $($@);
+        sleep 5;
+    done
+}

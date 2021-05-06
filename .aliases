@@ -1,7 +1,38 @@
 #! /use/bin/env bash
 # Navigation
 alias c="cd"
+alias ..="cd .."
+alias -g r="$HOME/Repositories"
 
-
-#List files
+# List files
 alias l="ls -la"
+
+# Print week number
+alias week="date +%V"
+
+# Look the screen (when going awk)
+alias afk="/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend"
+
+# Git
+alias gb="git branch --show-current"
+alias gdiff="git diff"
+alias greset="git reset HEAD~"
+##alias gslc="git show $(glog | head -n 1 | awk '{print $2}')"
+
+# Docker 
+# Remove all containers
+alias d="docker"
+alias drma="docker rm $(docker ps -aq)"
+alias drmia="docker rmi $(docker images -aq)"
+
+alias sc="source $HOME/.zshrc"
+
+# Listen process listening on port
+alias lop="lsof -nP +c 15 | grep LISTEN"
+
+#Pipenv
+alias pr="pipenv run python"
+
+# Suffix ALias
+alias -s js=vim
+alias -s md=vim
