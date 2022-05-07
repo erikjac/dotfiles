@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-export EDITOR='vim';
+export EDITOR='kak';
+export PATH="/usr/local/opt/openssl/lib:$PATH"
+export PATH="/usr/local/opt/openssl/include:$PATH"

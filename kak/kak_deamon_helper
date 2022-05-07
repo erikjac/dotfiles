@@ -1,0 +1,18 @@
+#!/bin/zsh
+kak() {
+
+    if [[ $(git rev-parse --is-inside-work-tree 2>&1 ) != "true" ]]; then
+        command kak test.sql
+    fi;
+
+    local server_name=$(basename `PWD`)
+    local socket_file=$(/usr/local/bin/kak -l | grep $server_name)
+
+    if [[ $socket_file == "" ]]; then
+        # Create new kakoune daemon for current dir
+        command setsid kak -d -s $server_name &
+    fi
+
+    # and run kakoune (with any arguments passed to the script)
+    command kak -c $server_name $@
+}

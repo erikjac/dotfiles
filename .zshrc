@@ -1,16 +1,17 @@
 # Enable Powerlevel10k instant prompt. Should stay close to the top of ~/.zshrc.
 # Initialization code that may require console input (password prompts, [y/n]
 # confirmations, etc.) must go above this block; everything else may go below.
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
+# if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+#  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+# fi
 
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Use pyenv to set python version
-export PATH=$HOME/.pyenv/versions/3.7.0/bin:$PATH
-export PATH=$HOME/.bin:$PATH
+#export PATH=$HOME/.pyenv/versions/3.7.0/bin:$PATH
+eval "$(pyenv init -)"
+export PATH=$(pyenv root)/shims:$HOME/.bin:$PATH
 
 # Path to your oh-my-zsh installation.
 export ZSH="/Users/erikjacobson/.oh-my-zsh"
@@ -19,7 +20,7 @@ export ZSH="/Users/erikjacobson/.oh-my-zsh"
 # load a random theme each time oh-my-zsh is loaded, in which case,
 # to know which specific one was loaded, run: echo $RANDOM_THEME
 # See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="powerlevel10k/powerlevel10k"
+#ZSH_THEME="powerlevel10k/powerlevel10k" # set by `omz`
 #ZSH_THEME="random"
 
 # Set list of themes to pick from when loading at random
@@ -45,10 +46,10 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 # export UPDATE_ZSH_DAYS=13
 
 # Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
+DISABLE_MAGIC_FUNCTIONS="true"
 
 # Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
+DISABLE_LS_COLORS="false"
 
 # Uncomment the following line to disable auto-setting terminal title.
 # DISABLE_AUTO_TITLE="true"
@@ -57,7 +58,7 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 ENABLE_CORRECTION="true"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
+COMPLETION_WAITING_DOTS="true"
 
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
@@ -80,9 +81,10 @@ ENABLE_CORRECTION="true"
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git alias-finder vi-mode)
+# plugins=(git alias-finder vi-mode)
+plugins=(vi-mode)
 
-source $ZSH/oh-my-zsh.sh
+#source $ZSH/oh-my-zsh.sh
 
 # User configuration
 
@@ -120,14 +122,16 @@ source ~/.functions
 set -o vi
 
 # Node version manager settings
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# This takes long long too bootstrap when starting a new shell
+# and i don't think i need it
+# export NVM_DIR="$HOME/.nvm"
+# [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+# [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 
-# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+PROMPT='%F{blue}%2~%f %F{green}>%f '
 
 # The next line updates PATH for the Google Cloud SDK.
 if [ -f '/Users/erikjacobson/google-cloud-sdk/path.zsh.inc' ]; then . '/Users/erikjacobson/google-cloud-sdk/path.zsh.inc'; fi
@@ -137,10 +141,59 @@ if [ -f '/Users/erikjacobson/google-cloud-sdk/completion.zsh.inc' ]; then . '/Us
 
 test -e "${HOME}/.iterm2_shell_integration.zsh" && source "${HOME}/.iterm2_shell_integration.zsh"
 
-# The next line enables shell command comletion for kubectl
-echo "[[ $commands[kubectl] ]] && source <(kubectl completion zsh)" >> ~/.zshrc 
+# Enable ESC v to edit command line
+autoload -U edit-command-line
 
-[[ /Users/erikjacobson/google-cloud-sdk/bin/kubectl ]] && source <(kubectl completion zsh)
-[[ /Users/erikjacobson/google-cloud-sdk/bin/kubectl ]] && source <(kubectl completion zsh)
-[[ /Users/erikjacobson/google-cloud-sdk/bin/kubectl ]] && source <(kubectl completion zsh)
-[[ /Users/erikjacobson/google-cloud-sdk/bin/kubectl ]] && source <(kubectl completion zsh)
+# Vi style:
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
+
+# Fzf settings
+export FZF_DEFAULT_COMMAND='fd --type file --follow --hidden --exclude .git'
+export PATH="/usr/local/opt/util-linux/bin:$PATH"
+export PATH="/usr/local/opt/util-linux/sbin:$PATH"
+export OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+
+# Move this in to a more dynamic typ config
+export AIRFLOW_HOME="/Users/erikjacobson/Repositories/data-cluster/airflow"
+export PYTHONPATH="${PYTHONPATH}:${AIRFLOW_HOME}"
+
+
+# TODO MOVE THIS TO SEPERATE FILE
+# Lazy load kubectl auto completion
+# Check if 'kubectl' is a command in $PATH
+if [ $commands[kubectl] ]; then
+    # Placeholder 'kubectl' shell function:
+    # Will only be executed on the first call to 'kubectl'
+    kubectl() {
+        # Remove this function, subsequent calls will execute 'kubectl' directly
+        unfunction "$0"
+        # Load auto-completion
+        source <(kubectl completion zsh)
+        # Execute 'kubectl' binary
+        $0 "$@"
+    }
+fi
+
+
+
+kak() {
+
+    if [[ $(git rev-parse --is-inside-work-tree 2>&1 ) != "true" ]];
+    then
+        command kak $@
+    else
+        local server_name=$(basename `git rev-parse --show-toplevel` | sed 's/\./-/g')
+        local socket_file=$(/usr/local/bin/kak -l | grep $server_name)
+
+        command kak -clear
+
+        if [[ $socket_file == "" ]]; then
+            # Create new kakoune daemon for current dir
+            command kak -s $server_name $@
+        else
+            # and run kakoune (with any arguments passed to the script)
+            command kak -c $server_name $@
+        fi
+   fi
+}

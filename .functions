@@ -1,6 +1,21 @@
-function hello_world {
-    echo "HELLO WORLD"
+function session {
+    if [[ -n "$1" ]]; then
+        name="$1"
+    elif $(git rev-parse --git-dir &>/dev/null) ; then
+        name=$(basename `git rev-parse --show-toplevel` | sed 's/\./-/g')
+    else
+        name="main"
+    fi
+
+    if [[ -n $(tmux ls 2>/dev/null | grep "$name") ]]; then
+        # Todo attach with new client
+        tmux attach -t "$name"
+    else
+        tmux new -s "$name"
+    fi
+
 }
+
 
 function firetoken {
     echo "Firebase token"
@@ -14,14 +29,13 @@ function backup_file {
     echo "backup file $FILENAME.backup"
     cp $FILE $FILE.backup
 }
-
-function random_string {
+ function random_string {
     echo $(openssl rand -hex $1)
 }
 
 function temp_note {
     local FILE=/tmp/$(random_string 8).md
-    touch $FILE && vim $FILE
+    touch $FILE && kak $FILE
 }
 
 function add_env {
@@ -34,7 +48,22 @@ function add_env {
 function forever {
     while true;
     do
-        echo $($@);
+        printf "%s" "$($@)";
         sleep 5;
     done
+}
+
+function activate {
+    local venv_folder=$(fd -t d -d 1 '^_?v?env([-|_]\w+)?$')
+
+    if [[ -n "$venv_folder" ]]; then
+        source "$venv_folder/bin/activate"
+    else
+        echo "No virtual env folder that matches regex"
+        echo "^_?v?env([-|_]\w+)?$"
+    fi
+}
+
+function yank_file {
+    cat $@ | pbcopy
 }

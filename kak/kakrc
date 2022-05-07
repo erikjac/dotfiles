@@ -1,0 +1,236 @@
+# ==============================
+# ====     Key Mappings     ====
+# ==============================
+
+# --------------
+# Normal Mode
+# --------------
+map global normal "#" ": comment-line<ret>"
+map global normal <c-j> <a-j> -docstring "Join line below"
+map global normal <c-l> <a-l> -docstring "Select to line end"
+map global normal <c-:> <a-:> -docstring "Ensure selections are in forward direction"
+map global normal <c-å> <a-`> -docstring "Swap case on selection"
+map global normal -docstring "Delete until end of line" D "<a-l>d"
+
+
+
+# --------------
+# User mode
+# --------------
+map global user @ <a-@> -docstring "Convert spaces to tabs"
+map global user c <a-`> -docstring "Swap case"
+map global user k <a-k> -docstring "Keep selection that matchen and discard the rest"
+
+evaluate-commands %sh{
+    #System clipboard handling
+    printf "map global user -docstring 'paste (after) from clipboard' p '<a-!>%s<ret>'\n" "pbpaste"
+    printf "map global user -docstring 'yank to clipboard' y '<a-|>%s<ret>'\n" "pbcopy"
+
+}
+
+# --------------
+# Match mode
+# --------------
+map global normal m ":enter-user-mode<space>match<ret>"
+
+declare-user-mode match
+map global match -docstring "Select around textobject" a <a-a>
+map global match -docstring "Select inside textobject" i <a-i>
+map global match -docstring "Surround object" s ":surround<ret>"
+
+#Surround
+define-command -hidden _surround-info %{
+    info -title "Surround object" 'enter char to select surrounder
+" Q: double quote
+'', q single quote
+,g: grave quote
+'
+}
+
+define-command surround %{
+    _surround-info
+    on-key %{ evaluate-commands %sh{
+        key=%val{key}
+        replacement="${key}${kak_selection}${key}"
+        printf "%s\n" "echo -debug $replacement"
+    }}
+}
+
+# --------------
+# Window mode
+# --------------
+map global normal <c-w> ":enter-user-mode<space>window<ret>"
+
+declare-user-mode window
+map global window -docstring "vertical pane slit" v ":tmux-terminal-horizontal kak<ret>"
+map global window -docstring "horizontal pane split" s ":tmux-terminal-vertical kak<ret>"
+map global window -docstring "Close pane" q "tmux-kill-pane<ret>"
+
+define-command tmux-kill-pane %{
+    # TODO
+    evaluate-commands %sh{ tmux kill-pane }
+}
+
+
+# ==============================
+# ====     Global Hooks     ====
+# ==============================
+
+hook global WinCreate .* %{ try %{
+    add-highlighter buffer/numbers          number-lines -relative -hlcursor -separator ' '
+    add-highlighter buffer/matching         show-matching
+    add-highlighter buffer/wrap             wrap -word -indent -marker '↪'
+    add-highlighter buffer/show-whitespaces show-whitespaces -lf '⋅' -spc ' ' -nbsp '⋅'
+}}
+
+# Set edirconfig for every real file
+hook global WinSetOption ^[^.*]+$ editorconfig-load
+
+# Focus in active client
+declare-option -hidden str last_focus_in
+declare-option -hidden str focus_out_face "rgb:FDFDFD,rgb:8e908c"
+hook global -group status-line-face-toggle FocusIn .* %{
+    set-option global last_focus_in %val{client}
+    unset-face window StatusLine
+    evaluate-commands %sh{
+        for client in $kak_client_list; do
+            if [ "$client" != "$kak_hook_param" ]; then
+                    printf "eval -no-hooks -client %s 'set-face window StatusLine %s'\n" \
+                    "$client" "$kak_opt_focus_out_face"
+            fi
+            done
+    }
+}
+
+hook global -group status-line-face-toggle WinDisplay .* %{
+    evaluate-commands %sh{
+        if [ "$kak_client" == "$kak_opt_last_focus_in" ]; then
+            echo "unset-face window StatusLine"
+        elif [ -n "$kak_opt_last_focus_in" ]; then
+            printf "set-face window StatusLine %s\n" "$kak_opt_focus_out_face"
+        fi
+    }
+}
+
+# --------------
+# Filetype Hooks
+# --------------
+
+hook global WinSetOption filetype=json %{
+    set-option buffer formatcmd 'jq .'
+}
+
+hook global WinSetOption filetype=javascript %{
+    # Prettier linter for javascript
+    set-option buffer formatcmd "prettier --stdin-filepath=%val{buffile}"
+    set-option buffer lintcmd 'run() { cat "$1" | npx eslint  --stdin --stdin-filename "$kak_buffile"; } && run '
+}
+
+hook global WinSetOption filetype=python %{
+    jedi-enable-autocomplete
+    set-option buffer lintcmd "flake8"
+    set-option buffer formatcmd "autopep8 --in-place %val{buffile}"
+}
+
+
+# ==============================
+# ====       commands       ====
+# ==============================
+
+define-command set-syntax -params 1.. %{
+    set-option buffer filetype arg{@}
+}
+
+define-command -docstring "Delete all buffers" delete-all-buffer %{ evaluate-commands %sh{
+    eval "set -- ${kak_buflist:?}"
+    while [ $# -gt 0 ]; do
+        printf "%s\n" "delete-buffer $1"
+        shift
+    done
+}}
+
+# =============================
+# ====      IDE-mode      =====
+# =============================
+
+def ide %{
+    rename-client main
+    set global jumpclient main
+
+    new rename-client tools
+    set global toolsclient tools
+
+    new rename-client docs
+    set global docsclient docs
+}
+
+# ==============================
+# ====       Plugins        ====
+# ==============================
+
+# Load std- library plugins
+nop %sh{
+    mkdir -p "$kak_config/autoload"
+    ln -sf "$kak_runtime/autoload" "$kak_config/autoload/std-library"
+}
+source "%val{config}/plugins/plug.kak/rc/plug.kak"
+plug "andreyorst/plug.kak" noload
+plug "andreyorst/fzf.kak" config %{
+    map global normal <c-p> ': fzf-mode<ret>'
+} defer fzf %{
+    set-option global fzf_use_main_selection false
+    set-option global fzf_highlight_command bat
+} defer fzf-file %{
+    set-option global fzf_file_command 'fd'
+} defer fzf-grep %{
+    echo -debug "fzf-grep"
+    set-option global fzf_grep_command 'rg'
+}
+plug "andreyorst/smarttab.kak" defer smarttab %{
+    # when `backspace' is pressed, 4 spaces are deleted at once
+    set-option global softtabstop 4
+} config %{
+    # these languages will use `expandtab' behavior
+    hook global WinSetOption filetype=.* expandtab
+}
+plug "andreyorst/kaktree" config %{
+    hook global WinSetOption filetype=kaktree %{
+        remove-highlighter buffer/numbers
+        remove-highlighter buffer/matching
+        remove-highlighter buffer/wrap
+        remove-highlighter buffer/show-whitespaces
+    }
+    kaktree-enable
+    alias global ls "kaktree-toggle"
+}
+plug "kak-lsp/kak-lsp" do %{
+    cargo install --locked --force --path .
+} config %{
+
+
+    map global user l %{: enter-user-mode lsp<ret>} -docstring "LSP mode"
+
+    set-option global lsp_config %{
+        [language.python.settings._]
+        "pyls.configurationSources" = ["flake8"]
+    }
+
+    set global lsp_diagnostic_line_error_sign '║'
+    set global lsp_diagnostic_line_warning_sign '┊'
+
+    define-command ne -docstring 'go to next error/warning from lsp' %{ lsp-find-error --include-warnings }
+    define-command pe -docstring 'go to previous error/warning from lsp' %{ lsp-find-error --previous --include-warnings }
+    define-command ee -docstring 'go to current error/warning from lsp' %{ lsp-find-error --include-warnings; lsp-find-error --previous --include-warnings }
+
+    define-command lsp-restart -docstring 'restart lsp server' %{ lsp-stop; lsp-start }
+    hook global WinSetOption filetype=(c|cpp|cc|rust|javascript|typescript|python) %{
+        set-option window lsp_auto_highlight_references true
+        set-option window lsp_hover_anchor false
+        lsp-auto-hover-enable
+        echo -debug "Enabling LSP for filtetype %opt{filetype}"
+        lsp-enable-window
+    }
+
+
+    hook global KakEnd .* lsp-exit
+}

@@ -2,10 +2,12 @@
 # Navigation
 alias c="cd"
 alias ..="cd .."
+alias ...="cd ../../
+alias ....="cd ../../../
 alias -g r="$HOME/Repositories"
 
 # List files
-alias l="ls -la"
+alias l="ls -lAhG"
 
 # Print week number
 alias week="date +%V"
@@ -19,7 +21,7 @@ alias gdiff="git diff"
 alias greset="git reset HEAD~"
 ##alias gslc="git show $(glog | head -n 1 | awk '{print $2}')"
 
-# Docker 
+# Docker
 # Remove all containers
 alias d="docker"
 alias drma="docker rm $(docker ps -aq)"
@@ -34,5 +36,15 @@ alias lop="lsof -nP +c 15 | grep LISTEN"
 alias pr="pipenv run python"
 
 # Suffix ALias
-alias -s js=vim
-alias -s md=vim
+alias -s js=kak
+alias -s md=kak
+alias -s py=kak
+
+# Get your ip
+alias myip="curl checkip.dyndns.org"
+
+# Simple Local webserver
+alias server="python -m http.server"
+
+# Prettyprint json
+alias ppjson="python -m json.tool"
